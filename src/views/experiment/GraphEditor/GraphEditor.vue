@@ -264,6 +264,39 @@ const mouseUp = () => {
 
 const getCanvasClick = (e: MouseEvent) => {
   const pos = { x: e.offsetX, y: e.offsetY };
+
+  // 先检查是否点击了当前选中节点的删除按钮
+  if (clickedNode.value && clickedNode.value.id) {
+    const currentNode = rectList.value.find(n => n.id === clickedNode.value!.id);
+    if (currentNode && currentNode.deleteButton) {
+      const { x: deleteX, y: deleteY, radius } = currentNode.deleteButton;
+      const distance = Math.sqrt(Math.pow(pos.x - deleteX, 2) + Math.pow(pos.y - deleteY, 2));
+      if (distance <= radius) {
+        // 点击了删除按钮，删除节点
+        deleteNode(clickedNode.value.id, linkList);
+        clickedNode.value = null;
+        drawGraph(null, null);
+        return;
+      }
+    }
+  }
+
+  // 检查是否点击了当前选中连线的删除按钮
+  if (clickedLink.value && clickedLink.value.id) {
+    const currentLink = linkList.value.find(l => l.id === clickedLink.value!.id);
+    if (currentLink && currentLink.deleteButton) {
+      const { x: deleteX, y: deleteY, radius } = currentLink.deleteButton;
+      const distance = Math.sqrt(Math.pow(pos.x - deleteX, 2) + Math.pow(pos.y - deleteY, 2));
+      if (distance <= radius) {
+        // 点击了删除按钮，删除连线
+        deleteLink(clickedLink.value.id);
+        clickedLink.value = null;
+        drawGraph(null, null);
+        return;
+      }
+    }
+  }
+
   const linkObj = getChooseLink(pos, linkLabelRect.value);
   if (!linkObj) {
     const nodeIndex = mouseNode(pos.x, pos.y, context.value);
@@ -334,24 +367,40 @@ const onDrop = (event: DragEvent) => {
   drawGraph(clickedNode.value, clickedLink.value as any);
 };
 
-onMounted(() => {
-  setCanvasEl();
-  window.addEventListener('resize', setCanvasEl);
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Shift') editType.value = true;
-  });
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'Shift') editType.value = false;
-    if (e.key === 'Delete' && clickedNode.value) {
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Shift') editType.value = true;
+};
+
+const handleKeyUp = (e: KeyboardEvent) => {
+  if (e.key === 'Shift') editType.value = false;
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    // 避免在输入框中删除时触发
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+    
+    if (clickedNode.value) {
       deleteNode(clickedNode.value.id, linkList);
       clickedNode.value = null;
       drawGraph(null, null);
+    } else if (clickedLink.value) {
+      deleteLink(clickedLink.value.id);
+      clickedLink.value = null;
+      drawGraph(null, null);
     }
-  });
+  }
+};
+
+onMounted(() => {
+  setCanvasEl();
+  window.addEventListener('resize', setCanvasEl);
+  document.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('keyup', handleKeyUp);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', setCanvasEl);
+  document.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener('keyup', handleKeyUp);
 });
 </script>
 

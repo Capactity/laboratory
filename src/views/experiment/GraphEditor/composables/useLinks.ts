@@ -62,19 +62,18 @@ export function useLinks(rectList: Ref<INode[]>) {
   const addLink = (startNode: INode, endNode: INode, color: string) => {
     if (startNode.id === endNode.id) return;
 
+    // 检查两个节点之间是否已存在连线（无论方向）
+    const existingLink = linkList.value.find(
+      (item) =>
+        (item.source.id === startNode.id && item.target.id === endNode.id) ||
+        (item.source.id === endNode.id && item.target.id === startNode.id)
+    );
+    if (existingLink) return;
+
     const lenL = linkList.value.length;
     const linkId = lenL > 0 ? `link${parseInt(linkList.value[0].id.replace('link', '')) + 1}` : 'link0';
 
-    const source = linkList.value.filter(
-      (item) => item.source.id === startNode.id && item.target.id === endNode.id
-    ).length;
-    const target = linkList.value.filter(
-      (item) => item.target.id === startNode.id && item.source.id === endNode.id
-    ).length;
-    const len = Number(source + target);
-    const k = len % 2 === 0 ? Math.floor(len / 2) * -1 : Math.floor(len / 2) + 1;
-
-    linkList.value.unshift(createLink(startNode, endNode, color, linkId, linkId, k));
+    linkList.value.unshift(createLink(startNode, endNode, color, linkId, linkId, 0));
     calculateK();
   };
 
